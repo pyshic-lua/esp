@@ -1,0 +1,21 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Función para teletransportar al jugador al mouse
+local function clickTeleport()
+    local mouse = LocalPlayer:GetMouse()
+    mouse.Button1Down:Connect(function()
+        local targetPos = mouse.Hit.Position
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            -- Ajustar altura para que no quede dentro del suelo
+            hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y + 3, targetPos.Z)
+        end
+    end)
+end
+
+clickTeleport()
+
+print("✅ Click Teleport activo - Solo funciona en tu juego")
