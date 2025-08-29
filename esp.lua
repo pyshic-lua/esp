@@ -1,4 +1,4 @@
-
+loadstring([[
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
@@ -81,7 +81,7 @@
         espObjects[player] = {Box = box, NameTag = nameTag}
     end
 
-    -- FUNCIÓN CORREGIDA - TAMAÑO FIJO
+    -- FUNCIÓN CORREGIDA - TAMAÑO REALMENTE FIJO
     local function updateESP()
         for player, data in pairs(espObjects) do
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -92,15 +92,24 @@
                     local position, onScreen = workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
                     
                     if onScreen then
-                        -- TAMAÑO FIJO - no se escala con la distancia
-                        local fixedSize = Vector2.new(50, 80)  -- Tamaño constante
+                        -- TAMAÑO ABSOLUTAMENTE FIJO (en píxeles de pantalla)
+                        -- Esto NO se escala con la distancia
+                        local fixedWidth = 50  -- píxeles
+                        local fixedHeight = 80 -- píxeles
                         
-                        data.Box.Size = fixedSize
-                        data.Box.Position = Vector2.new(position.X - fixedSize.X/2, position.Y - fixedSize.Y/2)
+                        -- Posición fija centrada en el jugador
+                        data.Box.Size = Vector2.new(fixedWidth, fixedHeight)
+                        data.Box.Position = Vector2.new(
+                            math.floor(position.X - fixedWidth / 2),
+                            math.floor(position.Y - fixedHeight / 2)
+                        )
                         data.Box.Visible = espEnabled
                         
-                        -- Nombre arriba del ESP
-                        data.NameTag.Position = Vector2.new(position.X, position.Y - fixedSize.Y/2 - 15)
+                        -- Nombre en posición fija arriba
+                        data.NameTag.Position = Vector2.new(
+                            math.floor(position.X),
+                            math.floor(position.Y - fixedHeight / 2 - 15)
+                        )
                         data.NameTag.Visible = espEnabled
                         
                         -- Color según el equipo
@@ -185,8 +194,10 @@
             isDragging = false
             bgBox.Color = Color3.fromRGB(40, 40, 40)
         end
-    end)
+    end
 
-    print("✅ ESP GUI Cargada! - Tamaño Fijo")
+    print("✅ ESP GUI Cargada! - Tamaño REALMENTE Fijo")
     print("👆 Click en el botón para activar")
-    print("📏 ESP mantiene tamaño constante")
+    print("📏 ESP con tamaño constante de 50x80 píxeles")
+    print("🎯 No se escala con la distancia")
+]])()
