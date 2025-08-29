@@ -1,0 +1,49 @@
+
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+local UserInputService = game:GetService("UserInputService")
+
+-- Configuración
+local FLING_FORCE = 1000
+local FLING_DURATION = 0.2
+local FLING_RANGE = 50
+
+-- Función para aplicar fling a un Part
+local function flingPart(part, direction)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Velocity = direction.Unit * FLING_FORCE
+    bv.P = 1e4
+    bv.Parent = part
+    Debris:AddItem(bv, FLING_DURATION)
+end
+
+-- Función para fling a todos los NPCs/dummies en rango
+local function flingNPCs(centerPosition)
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
+            local hrp = obj.HumanoidRootPart
+            local distance = (hrp.Position - centerPosition).Magnitude
+            if distance <= FLING_RANGE then
+                local direction = (hrp.Position - centerPosition).Unit + Vector3.new(0,1,0)
+                flingPart(hrp, direction)
+            end
+        end
+    end
+end
+
+-- Usar clic del mouse para lanzar NPCs frente a ti
+local LocalPlayer = Players.LocalPlayer
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            flingNPCs(hrp.Position)
+        end
+    end
+end)
+
+print("✅ Fling de testing listo - Solo funciona en tu juego y afecta NPCs/dummies")
