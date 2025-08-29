@@ -1,0 +1,138 @@
+loadstring([[
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local espEnabled = false
+local espObjects = {}
+
+-- Crear GUI simple
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPGui"
+screenGui.Parent = game.CoreGui
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 100, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 10)
+button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Text = "ESP: OFF"
+button.TextSize = 14
+button.Font = Enum.Font.SourceSansBold
+button.BorderSizePixel = 0
+button.Parent = screenGui
+
+-- Función para crear ESP con caja interna
+local function createESP(player)
+    if player == LocalPlayer then return end
+    if espObjects[player] then return end
+    
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    if not hrp then return end
+    
+    -- Crear caja transparente dentro del jugador
+    local box = Instance.new("BoxHandleAdornment")
+    box.Adornee = hrp
+    box.Size = Vector3.new(2, 5, 1) -- Tamaño aproximado de jugador
+    box.Color3 = player.Team and player.Team.Color or Color3.fromRGB(255, 0, 0)
+    box.AlwaysOnTop = true
+    box.ZIndex = 2
+    box.Transparency = 0.5
+    box.Visible = false
+    box.Parent = hrp
+    
+    -- Crear Billboard para el nombre
+    local head = character:FindFirstChild("Head")
+    if head then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_Name"
+        billboard.Size = UDim2.new(0, 200, 0, 50)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Enabled = false
+        billboard.Adornee = head
+        billboard.Parent = head
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.TextSize = 14
+        nameLabel.Text = player.Name
+        nameLabel.Parent = billboard
+        
+        espObjects[player] = {
+            Box = box,
+            Billboard = billboard,
+            Character = character
+        }
+    end
+end
+
+-- Función para actualizar ESP
+local function updateESP()
+    for player, data in pairs(espObjects) do
+        if data.Character and data.Character.Parent then
+            local humanoid = data.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                data.Box.Visible = espEnabled
+                data.Billboard.Enabled = espEnabled
+                
+                -- Color según equipo
+                if player.Team then
+                    data.Box.Color3 = player.Team.Color
+                else
+                    data.Box.Color3 = Color3.fromRGB(255, 0, 0)
+                end
+            else
+                data.Box.Visible = false
+                data.Billboard.Enabled = false
+            end
+        else
+            data.Box.Visible = false
+            data.Billboard.Enabled = false
+        end
+    end
+end
+
+-- Toggle ESP
+local function toggleESP()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        -- ACTIVAR
+        for _, player in ipairs(Players:GetPlayers()) do
+            createESP(player)
+        end
+        
+        Players.PlayerAdded:Connect(function(newPlayer)
+            createESP(newPlayer)
+        end)
+        
+        button.Text = "ESP: ON"
+        button.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        -- DESACTIVAR
+        for player, data in pairs(espObjects) do
+            if data.Box then
+                data.Box:Destroy()
+            end
+            if data.Billboard then
+                data.Billboard:Destroy()
+            end
+        end
+        espObjects = {}
+        
+        button.Text = "ESP: OFF"
+        button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+button.MouseButton1Click:Connect(toggleESP)
+RunService.Heartbeat:Connect(updateESP)
+
+print("✅ ESP CARGADO - Método de caja interna")
+]])()
