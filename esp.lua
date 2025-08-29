@@ -1,139 +1,117 @@
--- ESP Local para Exploit
+-- ESP CON GUI - VERSIÓN CORREGIDA
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local espEnabled = false
 local espObjects = {}
+local updateConnection = nil
+
+-- Crear GUI con Drawing (para evitar conflictos)
+local function createDrawingGUI()
+    -- Crear fondo del botón
+    local bgBox = Drawing.new("Square")
+    bgBox.Visible = true
+    bgBox.Size = Vector2.new(110, 50)
+    bgBox.Position = Vector2.new(20, 20)
+    bgBox.Color = Color3.fromRGB(30, 30, 30)
+    bgBox.Filled = true
+    bgBox.Thickness = 0
+    
+    -- Crear botón
+    local buttonBox = Drawing.new("Square")
+    buttonBox.Visible = true
+    buttonBox.Size = Vector2.new(100, 40)
+    buttonBox.Position = Vector2.new(25, 25)
+    buttonBox.Color = Color3.fromRGB(255, 50, 50)
+    buttonBox.Filled = true
+    buttonBox.Thickness = 2
+    
+    -- Texto del botón
+    local buttonText = Drawing.new("Text")
+    buttonText.Visible = true
+    buttonText.Text = "ESP: OFF"
+    buttonText.Position = Vector2.new(50, 35)
+    buttonText.Color = Color3.fromRGB(255, 255, 255)
+    buttonText.Size = 16
+    buttonText.Center = true
+    buttonText.Outline = true
+    
+    return {
+        Background = bgBox,
+        Button = buttonBox,
+        Text = buttonText
+    }
+end
+
+-- Crear la GUI
+local gui = createDrawingGUI()
+
+-- Función para actualizar el botón
+local function updateButton()
+    if espEnabled then
+        gui.Button.Color = Color3.fromRGB(50, 200, 50)
+        gui.Text.Text = "ESP: ON"
+    else
+        gui.Button.Color = Color3.fromRGB(255, 50, 50)
+        gui.Text.Text = "ESP: OFF"
+    end
+end
 
 -- Función para crear ESP
 local function createESP(player)
     if player == LocalPlayer then return end
     if espObjects[player] then return end
     
-    local function setupESP(character)
-        if not character then return end
-        
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        local head = character:FindFirstChild("Head")
-        if not humanoid or not head then return end
-        
-        -- Box ESP
-        local box = Drawing.new("Square")
-        box.Visible = false
-        box.Color = Color3.fromRGB(255, 0, 0)
-        box.Thickness = 2
-        box.Filled = false
-        box.ZIndex = 1
-        
-        -- Name Tag
-        local nameTag = Drawing.new("Text")
-        nameTag.Visible = false
-        nameTag.Color = Color3.fromRGB(255, 255, 255)
-        nameTag.Size = 18
-        nameTag.Center = true
-        nameTag.Outline = true
-        nameTag.OutlineColor = Color3.fromRGB(0, 0, 0)
-        nameTag.Text = player.Name
-        
-        -- Health Bar
-        local healthBar = Drawing.new("Line")
-        healthBar.Visible = false
-        healthBar.Color = Color3.fromRGB(0, 255, 0)
-        healthBar.Thickness = 3
-        healthBar.ZIndex = 2
-        
-        espObjects[player] = {
-            Box = box,
-            NameTag = nameTag,
-            HealthBar = healthBar,
-            Character = character,
-            Humanoid = humanoid,
-            Head = head
-        }
-    end
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.fromRGB(255, 0, 0)
+    box.Thickness = 2
+    box.Filled = false
     
-    -- Conectar eventos
-    if player.Character then
-        setupESP(player.Character)
-    end
+    local nameTag = Drawing.new("Text")
+    nameTag.Visible = false
+    nameTag.Color = Color3.fromRGB(255, 255, 255)
+    nameTag.Size = 14
+    nameTag.Center = true
+    nameTag.Outline = true
+    nameTag.OutlineColor = Color3.fromRGB(0, 0, 0)
+    nameTag.Text = player.Name
     
-    player.CharacterAdded:Connect(function(character)
-        if espObjects[player] then
-            espObjects[player].Box:Remove()
-            espObjects[player].NameTag:Remove()
-            espObjects[player].HealthBar:Remove()
-            espObjects[player] = nil
-        end
-        setupESP(character)
-    end)
-    
-    player.CharacterRemoving:Connect(function()
-        if espObjects[player] then
-            espObjects[player].Box:Remove()
-            espObjects[player].NameTag:Remove()
-            espObjects[player].HealthBar:Remove()
-            espObjects[player] = nil
-        end
-    end)
+    espObjects[player] = {
+        Box = box,
+        NameTag = nameTag
+    }
 end
 
 -- Función para actualizar ESP
 local function updateESP()
     for player, data in pairs(espObjects) do
-        if not data.Character or not data.Character:FindFirstChild("Head") then
-            data.Box:Remove()
-            data.NameTag:Remove()
-            data.HealthBar:Remove()
-            espObjects[player] = nil
-            continue
-        end
-        
-        local head = data.Character.Head
-        local humanoid = data.Character:FindFirstChildOfClass("Humanoid")
-        
-        if head and humanoid and humanoid.Health > 0 then
+        if player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
             local position, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
             
             if onScreen then
-                -- Calcular tamaño del ESP
                 local distance = (workspace.CurrentCamera.CFrame.Position - head.Position).Magnitude
                 local scale = 1000 / distance
                 
-                -- Box ESP
                 data.Box.Size = Vector2.new(scale * 2, scale * 3)
                 data.Box.Position = Vector2.new(position.X - data.Box.Size.X / 2, position.Y - data.Box.Size.Y / 2)
                 data.Box.Visible = espEnabled
                 
-                -- Name Tag
-                data.NameTag.Position = Vector2.new(position.X, position.Y - data.Box.Size.Y / 2 - 20)
-                data.NameTag.Text = player.Name .. " [" .. math.floor(humanoid.Health) .. "/" .. math.floor(humanoid.MaxHealth) .. "]"
+                data.NameTag.Position = Vector2.new(position.X, position.Y - data.Box.Size.Y / 2 - 15)
                 data.NameTag.Visible = espEnabled
                 
-                -- Health Bar
-                local healthPercent = humanoid.Health / humanoid.MaxHealth
-                local healthColor = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
-                
-                data.HealthBar.From = Vector2.new(position.X - data.Box.Size.X / 2, position.Y + data.Box.Size.Y / 2 + 5)
-                data.HealthBar.To = Vector2.new(position.X - data.Box.Size.X / 2 + data.Box.Size.X * healthPercent, position.Y + data.Box.Size.Y / 2 + 5)
-                data.HealthBar.Color = healthColor
-                data.HealthBar.Visible = espEnabled
-                
-                -- Cambiar color del box según el equipo
                 if player.Team then
                     data.Box.Color = player.Team.Color
-                else
-                    data.Box.Color = Color3.fromRGB(255, 0, 0)
                 end
             else
                 data.Box.Visible = false
                 data.NameTag.Visible = false
-                data.HealthBar.Visible = false
             end
         else
             data.Box.Visible = false
             data.NameTag.Visible = false
-            data.HealthBar.Visible = false
         end
     end
 end
@@ -143,46 +121,67 @@ local function toggleESP()
     espEnabled = not espEnabled
     
     if espEnabled then
-        -- Crear ESP para todos los jugadores
+        -- ACTIVAR ESP
         for _, player in ipairs(Players:GetPlayers()) do
             createESP(player)
         end
         
-        -- Conectar nuevos jugadores
-        Players.PlayerAdded:Connect(function(player)
-            createESP(player)
+        Players.PlayerAdded:Connect(function(newPlayer)
+            createESP(newPlayer)
         end)
         
-        -- Iniciar loop de actualización
-        RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Last, updateESP)
+        if updateConnection then
+            updateConnection:Disconnect()
+        end
+        updateConnection = RunService.RenderStepped:Connect(updateESP)
         
-        print("ESP Activado")
+        updateButton()
+        print("✅ ESP ACTIVADO")
+        
     else
-        -- Desactivar todo
-        for player, data in pairs(espObjects) do
-            data.Box:Remove()
-            data.NameTag:Remove()
-            data.HealthBar:Remove()
+        -- DESACTIVAR ESP
+        for _, data in pairs(espObjects) do
+            pcall(function()
+                data.Box:Remove()
+                data.NameTag:Remove()
+            end)
         end
         espObjects = {}
         
-        RunService:UnbindFromRenderStep("ESPUpdate")
-        print("ESP Desactivado")
+        if updateConnection then
+            updateConnection:Disconnect()
+            updateConnection = nil
+        end
+        
+        updateButton()
+        print("✅ ESP DESACTIVADO")
     end
 end
 
--- Crear interfaz simple (opcional para exploit)
-local function createGUI()
-    -- Esto es opcional, dependiendo de tu exploit
-    print("ESP Script Cargado")
-    print("Usa: toggleESP() para activar/desactivar")
+-- Detectar clic en el botón
+local function checkClick(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+        local buttonPos = gui.Button.Position
+        local buttonSize = gui.Button.Size
+        
+        if mousePos.X >= buttonPos.X and mousePos.X <= buttonPos.X + buttonSize.X and
+           mousePos.Y >= buttonPos.Y and mousePos.Y <= buttonPos.Y + buttonSize.Y then
+            toggleESP()
+        end
+    end
 end
 
--- Inicializar
-createGUI()
+-- Conectar el evento de clic
+game:GetService("UserInputService").InputBegan:Connect(checkClick)
 
--- Devolver función de toggle
-return {
-    toggle = toggleESP,
-    enabled = function() return espEnabled end
-}
+print("🎯 ESP SCRIPT CARGADO!")
+print("👆 Haz click en el botón de la esquina")
+print("📍 Posición: Esquina superior izquierda")
+
+-- Auto-activar después de 2 segundos (opcional)
+delay(2, function()
+    if not espEnabled then
+        toggleESP()
+    end
+end)
