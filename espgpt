@@ -22,20 +22,21 @@ button.Font = Enum.Font.SourceSansBold
 button.BorderSizePixel = 0
 button.Parent = screenGui
 
--- Función para crear ESP con caja interna
+-- Función para crear ESP con caja interna ajustable
 local function createESP(player)
     if player == LocalPlayer then return end
     if espObjects[player] then return end
     
     local character = player.Character or player.CharacterAdded:Wait()
     local hrp = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-    if not hrp then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local head = character:FindFirstChild("Head")
     
-    -- Crear caja transparente dentro del jugador
+    if not hrp or not humanoid or not head then return end
+    
+    -- Crear caja ajustable
     local box = Instance.new("BoxHandleAdornment")
     box.Adornee = hrp
-    box.Size = Vector3.new(2, 5, 1) -- Tamaño aproximado de jugador
-    box.Color3 = player.Team and player.Team.Color or Color3.fromRGB(255, 0, 0)
     box.AlwaysOnTop = true
     box.ZIndex = 2
     box.Transparency = 0.5
@@ -43,43 +44,50 @@ local function createESP(player)
     box.Parent = hrp
     
     -- Crear Billboard para el nombre
-    local head = character:FindFirstChild("Head")
-    if head then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESP_Name"
-        billboard.Size = UDim2.new(0, 200, 0, 50)
-        billboard.StudsOffset = Vector3.new(0, 3, 0)
-        billboard.AlwaysOnTop = true
-        billboard.Enabled = false
-        billboard.Adornee = head
-        billboard.Parent = head
-        
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, 0, 1, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.Font = Enum.Font.SourceSansBold
-        nameLabel.TextSize = 14
-        nameLabel.Text = player.Name
-        nameLabel.Parent = billboard
-        
-        espObjects[player] = {
-            Box = box,
-            Billboard = billboard,
-            Character = character
-        }
-    end
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_Name"
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Enabled = false
+    billboard.Adornee = head
+    billboard.Parent = head
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.Font = Enum.Font.SourceSansBold
+    nameLabel.TextSize = 14
+    nameLabel.Text = player.Name
+    nameLabel.Parent = billboard
+    
+    espObjects[player] = {
+        Box = box,
+        Billboard = billboard,
+        Character = character,
+        Humanoid = humanoid
+    }
 end
 
 -- Función para actualizar ESP
 local function updateESP()
     for player, data in pairs(espObjects) do
         if data.Character and data.Character.Parent then
-            local humanoid = data.Character:FindFirstChildOfClass("Humanoid")
+            local humanoid = data.Humanoid
             if humanoid and humanoid.Health > 0 then
                 data.Box.Visible = espEnabled
                 data.Billboard.Enabled = espEnabled
+                
+                -- Ajustar tamaño de la caja al personaje
+                local hrp = data.Character:FindFirstChild("HumanoidRootPart") or data.Character:FindFirstChild("Torso") or data.Character:FindFirstChild("UpperTorso")
+                if hrp then
+                    local width = 2
+                    local height = humanoid.HipHeight * 2 + 2 -- Aproximadamente altura total
+                    local depth = 1
+                    data.Box.Size = Vector3.new(width, height, depth)
+                end
                 
                 -- Color según equipo
                 if player.Team then
@@ -108,8 +116,11 @@ local function toggleESP()
             createESP(player)
         end
         
+        -- Detectar nuevos jugadores y sus personajes
         Players.PlayerAdded:Connect(function(newPlayer)
-            createESP(newPlayer)
+            newPlayer.CharacterAdded:Connect(function()
+                createESP(newPlayer)
+            end)
         end)
         
         button.Text = "ESP: ON"
@@ -134,5 +145,7 @@ end
 button.MouseButton1Click:Connect(toggleESP)
 RunService.Heartbeat:Connect(updateESP)
 
-print("✅ ESP CARGADO - Método de caja interna")
+print("✅ ESP CARGADO - Caja interna ajustable al personaje")
 ]])()
+
+
