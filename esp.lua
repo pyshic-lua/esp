@@ -82,19 +82,49 @@ local function createESP(player)
 end
 
 -- Función para actualizar ESP
+-- Reemplaza SOLO la función updateESP con esta versión:
 local function updateESP()
     for player, data in pairs(espObjects) do
-        if player.Character and player.Character:FindFirstChild("Head") then
+        if player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("HumanoidRootPart") then
             local head = player.Character.Head
-            local position, onScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
+            local rootPart = player.Character.HumanoidRootPart
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             
-            if onScreen then
-                data.Box.Size = Vector2.new(50, 70)
-                data.Box.Position = Vector2.new(position.X - 25, position.Y - 35)
-                data.Box.Visible = espEnabled
+            if humanoid and humanoid.Health > 0 then
+                local headPosition, headOnScreen = workspace.CurrentCamera:WorldToViewportPoint(head.Position)
+                local rootPosition, rootOnScreen = workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
                 
-                data.NameTag.Position = Vector2.new(position.X, position.Y - 50)
-                data.NameTag.Visible = espEnabled
+                if headOnScreen and rootOnScreen then
+                    -- Calcular el tamaño correcto del ESP basado en la distancia
+                    local distance = (workspace.CurrentCamera.CFrame.Position - head.Position).Magnitude
+                    local scaleFactor = 1000 / distance
+                    
+                    -- Calcular la altura y anchura del personaje
+                    local height = math.abs(headPosition.Y - rootPosition.Y) * 2
+                    local width = height * 0.6  -- Proporción aproximada del cuerpo
+                    
+                    -- Posicionar la caja correctamente
+                    local boxSize = Vector2.new(width, height)
+                    local boxPosition = Vector2.new(headPosition.X - width/2, rootPosition.Y - height/2)
+                    
+                    data.Box.Size = boxSize
+                    data.Box.Position = boxPosition
+                    data.Box.Visible = espEnabled
+                    
+                    -- Posicionar el nombre arriba de la cabeza
+                    data.NameTag.Position = Vector2.new(headPosition.X, headPosition.Y - height/2 - 20)
+                    data.NameTag.Visible = espEnabled
+                    
+                    -- Color según el equipo
+                    if player.Team then
+                        data.Box.Color = player.Team.Color
+                    else
+                        data.Box.Color = Color3.fromRGB(255, 0, 0)
+                    end
+                else
+                    data.Box.Visible = false
+                    data.NameTag.Visible = false
+                end
             else
                 data.Box.Visible = false
                 data.NameTag.Visible = false
@@ -180,3 +210,4 @@ print("👆 Click en el botón para activar")
 print("🖱️  Arrastra el fondo para mover")
 
 -- No return function() aquí - es código directo
+
